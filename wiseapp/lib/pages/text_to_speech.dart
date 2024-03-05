@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final SpeechToText _speechToText = SpeechToText();
+  late final SpeechToText _speechToText;
 
   bool _speechEnabled = false;
   String _wordsSpoken = "";
@@ -18,12 +19,19 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _speechToText = SpeechToText();
     initSpeech();
   }
 
   void initSpeech() async {
-    _speechEnabled = await _speechToText.initialize();
-    setState(() {});
+    bool available = await _speechToText.initialize(
+      onError: (error) => print("Error: $error"),
+    );
+    if (available) {
+      setState(() {
+        _speechEnabled = true;
+      });
+    }
   }
 
   void _startListening() async {
@@ -38,9 +46,9 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
-  void _onSpeechResult(result) {
+  void _onSpeechResult(SpeechRecognitionResult result) {
     setState(() {
-      _wordsSpoken = "${result.recognizedWords}";
+      _wordsSpoken = result.recognizedWords;
       _confidenceLevel = result.confidence;
     });
   }
@@ -64,7 +72,7 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.all(16),
               child: Text(
                 _speechToText.isListening
-                    ? "listening..."
+                    ? "Listening..."
                     : _speechEnabled
                         ? "Tap the microphone to start listening..."
                         : "Speech not available",
