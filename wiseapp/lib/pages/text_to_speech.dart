@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -10,35 +11,43 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late final SpeechToText _speechToText;
+  final SpeechToText _speechToText = SpeechToText();
 
   bool _speechEnabled = false;
   String _wordsSpoken = "";
-  double _confidenceLevel = 0;
+  double _confidenceLevel = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _speechToText = SpeechToText();
-    initSpeech();
+    _initSpeech();
   }
 
-  void initSpeech() async {
+  Future<void> _initSpeech() async {
+    // Request microphone permission
+    var status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted) {
+      print('Microphone permission denied');
+      return; // Handle permission denial
+    }
+
+    // Check speech recognition availability
     bool available = await _speechToText.initialize(
       onError: (error) => print("Error: $error"),
     );
+
     if (available) {
       setState(() {
         _speechEnabled = true;
       });
+    } else {
+      print('Speech recognition not available');
+      // Handle unavailability here
     }
   }
 
   void _startListening() async {
     await _speechToText.listen(onResult: _onSpeechResult);
-    setState(() {
-      _confidenceLevel = 0;
-    });
   }
 
   void _stopListening() async {
@@ -60,9 +69,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.red,
         title: Text(
           'Speech Demo',
-          style: TextStyle(
-            color: Colors.white,
-          ),
+          style: TextStyle(color: Colors.white),
         ),
       ),
       body: Center(
@@ -93,9 +100,7 @@ class _HomePageState extends State<HomePage> {
             ),
             if (_speechToText.isNotListening && _confidenceLevel > 0)
               Padding(
-                padding: const EdgeInsets.only(
-                  bottom: 100,
-                ),
+                padding: const EdgeInsets.only(bottom: 100),
                 child: Text(
                   "Confidence: ${(_confidenceLevel * 100).toStringAsFixed(1)}%",
                   style: TextStyle(
